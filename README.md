@@ -19,5 +19,6 @@ I'm not giving you the code for the save images because I'm not the owner of tha
 
 To all chess lovers, build your boards and your art, the only condition I put on your free use is that you give me the privilege of seeing and appreciating your art for Chess Maker!
 
+(explicacion) https://youtu.be/ys0TdnneakI
 https://www.youtube.com/@pantrox_arts
 https://ko-fi.com/pantrox_arts
