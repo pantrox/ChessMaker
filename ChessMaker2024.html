@@ -1,0 +1,2136 @@
+<html><head><base href="." />
+<!-- Loading scripts in correct order -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+
+<style>
+/* Keeping your existing styles unchanged */
+:root {
+  --board-angle: 10deg;
+  --light-square: #e8e8e8;  /* Match with color picker default */
+  --dark-square: #a9a9a9;   /* Match with color picker default */
+  --highlight: rgba(255, 255, 0, 0.5);
+  --background-color: #2c3e50;
+  --window-color: #34495e;
+  --button-color: #34495e;
+  --button-hover-color: #2c3e50;
+  --accent-color: #456789; /* Add this variable for accent color */
+}
+
+body {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: var(--background-color);
+  font-family: Arial, sans-serif;
+}
+
+.container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.board-container {
+  perspective: 1000px;
+}
+
+#board {
+  transform: rotateX(var(--board-angle));
+  width: 400px;
+  height: 400px;
+  border: 2px solid var(--accent-color); /* Change from #34495e to use accent color */
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Make sure children are ordered correctly */
+.controls > * {
+  order: 2; /* Default order */
+}
+
+#player2-timer {
+  order: 1; /* Put Black timer first */
+}
+
+#player1-timer {
+  order: 3; /* Put White timer last */
+}
+
+/* Update the timer class styling to use the button color variable */
+.timer {
+  background: var(--button-color);
+  padding: 10px;
+  border-radius: 5px;
+  color: white;
+  text-align: center;
+  margin: 5px 0;
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+button {
+  background: var(--button-color);
+  border: none;
+  color: white;
+  padding: 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+button:hover {
+  background: var(--button-hover-color);
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.difficulty {
+  display: none;
+}
+
+.difficulty.show {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Add styles for promotion dialog */
+.promotion-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--window-color);
+  padding: 20px;
+  border-radius: 5px;
+  display: none;
+  gap: 10px;
+  z-index: 1000;
+}
+
+.promotion-piece {
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.promotion-piece:hover {
+  border-color: yellow;
+}
+
+/* Update the config-dialog styles to be wider */
+.config-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--window-color);
+  padding: 20px;
+  border-radius: 5px;
+  display: none;
+  flex-direction: column;
+  gap: 15px;
+  max-height: 80vh;
+  overflow-y: auto;
+  width: 90%; /* Increase from 80% to 90% */
+  max-width: 1000px; /* Increase from 600px to 1000px */
+}
+
+/* Update the piece-config-row to better use the wider space */
+.piece-config-row {
+  display: grid;
+  grid-template-columns: 120px repeat(4, 1fr); /* Increase first column from 100px to 120px */
+  gap: 20px; /* Increase gap from 10px to 20px */
+  align-items: center;
+  margin: 10px 0;
+  padding: 10px; /* Increase padding from 5px to 10px */
+  background: rgba(255,255,255,0.1);
+}
+
+/* Update save dialog width to match config dialog */
+#saveDialog {
+  width: 90% !important; /* Increase from 80% to 90% */
+  max-width: 1000px !important; /* Increase from 600px to 1000px */
+}
+
+/* Add new styles for piece configuration */
+.piece-config-section {
+  border: 1px solid var(--accent-color); /* Change from #456789 to use accent color */
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.preview-box {
+  width: 50px;
+  height: 50px;
+  border: 2px dashed var(--accent-color); /* Change from #567890 to use accent color */
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-box img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.file-input {
+  display: none;
+}
+
+.upload-btn {
+  background: var(--accent-color); /* Change from #567890 to use accent color */
+  color: white;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: center;
+}
+
+.config-header {
+  color: white;
+  border-bottom: 1px solid var(--accent-color);
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.close-config {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+/* Add or update these styles in your CSS */
+.square-55d63 {
+  transition: background-color 0.2s;
+}
+
+/* Make pieces non-draggable */
+.piece-417db {
+  cursor: pointer !important;
+  user-select: none;
+}
+
+/* Add move animation styles */
+.piece-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  pointer-events: none;
+  object-fit: contain;
+}
+
+/* Fullscreen scaling */
+:fullscreen .container {
+  transform: scale(1.5);
+  transform-origin: center center;
+}
+
+:-webkit-full-screen .container {
+  transform: scale(1.5);
+  transform-origin: center center;
+}
+
+:-moz-full-screen .container {
+  transform: scale(1.5);
+  transform-origin: center center;
+}
+
+:-ms-fullscreen .container {
+  transform: scale(1.5);
+  transform-origin: center center;
+}
+
+/* Add extra space for scaled content in fullscreen */
+:fullscreen body,
+:-webkit-full-screen body,
+:-moz-full-screen body,
+:-ms-fullscreen body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Ensure the container has space to scale */
+.container {
+  transition: transform 0.3s ease;
+  transform-origin: center center;
+}
+
+/* Adjust board container perspective in fullscreen */
+:fullscreen .board-container,
+:-webkit-full-screen .board-container,
+:-moz-full-screen .board-container,
+:-ms-fullscreen .board-container {
+  perspective: 1500px;
+}
+
+/* Add to existing styles */
+.board-squares-section {
+  margin-top: 20px;
+}
+
+.squares-preview {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.square-preview {
+  width: 60px;
+  height: 60px;
+  border: 1px solid var(--accent-color); /* Change from #456789 to use accent color */
+  background-size: cover;
+  background-position: center;
+}
+
+/* Update chessboard square styles to use custom backgrounds */
+.white-1e1d7 {
+  background-image: var(--light-square-img, none);
+  background-color: var(--light-square);
+  background-size: cover;
+}
+
+.black-3c85d {
+  background-image: var(--dark-square-img, none);
+  background-color: var(--dark-square);
+  background-size: cover;
+}
+
+#game-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  color: red;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  pointer-events: none;
+  z-index: 1000;
+  text-align: center; /* Center the text */
+  width: 100%; /* Ensure the text has full width to center */
+}
+
+/* Add new styles for audio controls */
+.audio-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+}
+
+.audio-preview {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.audio-play {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.audio-play:hover {
+  color: yellow;
+}
+
+/* Add to existing styles */
+.game-sounds-section {
+  margin-top: 20px;
+}
+
+.game-sounds-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.audio-config-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 5px;
+}
+
+.audio-config-row span {
+  min-width: 150px;
+  color: white;
+}
+
+/* New styles for color controls */
+.color-controls {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid var(--accent-color); /* Change from #456789 to use accent color */
+  border-radius: 5px;
+}
+
+.color-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.color-slider-row span {
+  min-width: 120px;
+  color: white;
+}
+
+.color-slider-row input[type="color"] {
+  width: 50px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="controls">
+    <div class="timer" id="player2-timer">Black: 00:00</div>
+    <div class="button-container">
+      <button id="mode-toggle">
+        <svg class="icon"><path d="M16 8c0 3.866-3.134 7-7 7s-7-3.134-7-7 3.134-7 7-7 7 3.134 7 7zM2 8c0 3.866 3.134 7 7 7s7-3.134 7-7-3.134-7-7-7-7 3.134-7 7z"/></svg>
+        Mode: Human vs Human
+      </button>
+      <div class="difficulty" id="difficulty-controls">
+        <button data-level="4">AI Opponent</button>
+      </div>
+      <button id="reset">
+        <svg class="icon"><path d="M8 3v3H2v2h6v3l4-4-4-4z"/></svg>
+        Reset Game
+      </button>
+      <button id="fullscreen">
+        <svg class="icon"><path d="M0 0v6h2V2h4V0H0zm16 0h-6v2h4v4h2V0zM2 14H0v6h6v-2H2v-4zm14 0h-4v2h4v4h2v-6h-2z"/></svg>
+        Fullscreen
+      </button>
+      <button onclick="toggleConfig(true)">
+        <svg class="icon"><path d="M15.95 10.78c.03-.25.05-.51.05-.78s-.02-.53-.06-.78l1.69-1.32c.15-.12.19-.34.1-.51l-1.6-2.77c-.1-.18-.31-.24-.49-.18l-1.99.8c-.42-.32-.86-.58-1.35-.78L12 2.34c-.03-.2-.2-.34-.4-.34H8.4c-.2 0-.36.14-.39.34l-.3 2.12c-.49.2-.94.47-1.35.78l-1.99-.8c-.18-.07-.39 0-.49.18l-1.6 2.77c-.1.18-.06.39.1.51l1.69 1.32c-.04.25-.07.52-.07.78s.02.53.06.78L2.37 12.1c-.15.12-.19.34-.1.51l1.6 2.77c.1.18.31.24.49.18l1.99-.8c.42.32.86.58 1.35.78l.3 2.12c.04.2.2.34.4.34h3.2c.2 0 .37-.14.39-.34l.3-2.12c.49-.2.94-.47 1.35-.78l1.99.8c.18.07.39 0 .49-.18l1.6-2.77c.1-.18.06-.39-.1-.51l-1.67-1.32zM10 13c-1.65 0-3-1.35-3-3s1.35-3 3-3 3 1.35 3 3-1.35 3-3 3z"/></svg>
+        Configure Pieces
+      </button>
+    </div>
+    <div class="timer" id="player1-timer">White: 00:00</div>
+  </div>
+  <div class="board-container">
+    <div id="board"></div>
+    <div id="game-status"></div>
+  </div>
+</div>
+
+<!-- Add promotion dialog -->
+<div class="promotion-dialog" id="promotionDialog">
+  <img class="promotion-piece" data-piece="q" alt="Queen" src="">
+  <img class="promotion-piece" data-piece="r" alt="Rook" src="">
+  <img class="promotion-piece" data-piece="b" alt="Bishop" src="">
+  <img class="promotion-piece" data-piece="n" alt="Knight" src="">
+</div>
+
+<!-- Add new configuration dialog -->
+<div class="config-dialog" id="configDialog">
+  <button class="close-config" onclick="toggleConfig(false)">&times;</button>
+  <button class="save-config" onclick="toggleSaveDialog(true)" style="position: absolute; top: 10px; right: 40px; background: none; border: none; color: white; cursor: pointer;">
+    <svg class="icon" style="width: 24px; height: 24px;">
+      <path d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3ZM19 19H5V5H16.17L19 7.83V19ZM12 12C10.34 12 9 13.34 9 15C9 16.66 10.34 18 12 18C13.66 18 15 16.66 15 15C15 13.34 13.66 12 12 12ZM6 6H15V10H6V6Z"/>
+    </svg>
+  </button>
+  <h2 class="config-header">Piece Configuration</h2>
+  
+  <div class="piece-config-section">
+    <h3>White Pieces</h3>
+    <div id="whitePieces">
+      <div class="piece-config-row">
+        <span>King</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-k" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="w-k" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-k-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="w-k-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-k-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="w-k-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-k-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-k-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="piece-config-row">
+        <span>Queen</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-q" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="w-q" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-q-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="w-q-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-q-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="w-q-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-q-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-q-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="piece-config-row">
+        <span>Bishop</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-b" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="w-b" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-b-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="w-b-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-b-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="w-b-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-b-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-b-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="piece-config-row">
+        <span>Knight</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-n" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="w-n" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-n-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="w-n-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-n-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="w-n-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-n-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-n-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="piece-config-row">
+        <span>Rook</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-r" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="w-r" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-r-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="w-r-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-r-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="w-r-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-r-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-r-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="piece-config-row">
+        <span>Pawn</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-p" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="w-p" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-p-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="w-p-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-w-p-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="w-p-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-p-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="w-p-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="piece-config-section">
+    <h3>Black Pieces</h3>
+    <div id="blackPieces">
+      <div class="piece-config-row">
+        <span>King</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-k" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="b-k" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-k-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="b-k-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-k-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="b-k-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-k-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-k-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="piece-config-row">
+        <span>Queen</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-q" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="b-q" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-q-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="b-q-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-q-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="b-q-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-q-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-q-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="piece-config-row">
+        <span>Bishop</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-b" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="b-b" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-b-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="b-b-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-b-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="b-b-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-b-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-b-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="piece-config-row">
+        <span>Knight</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-n" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="b-n" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-n-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="b-n-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-n-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="b-n-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-n-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-n-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="piece-config-row">
+        <span>Rook</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-r" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="b-r" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-r-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="b-r-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-r-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="b-r-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-r-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-r-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="piece-config-row">
+        <span>Pawn</span>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-p" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Piece
+            <input type="file" class="file-input" data-piece="b-p" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-p-attack" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Attack
+            <input type="file" class="file-input" data-piece="b-p-attack" accept="image/*">
+          </label>
+        </div>
+        <div>
+          <div class="preview-box">
+            <img id="preview-b-p-death" src="" alt="">
+          </div>
+          <label class="upload-btn">
+            Death
+            <input type="file" class="file-input" data-piece="b-p-death" accept="image/*">
+          </label>
+        </div>
+        <div> <!-- New div for audio controls -->
+          <div class="audio-controls">
+            <div class="audio-preview">
+              <button class="audio-play" data-type="attack">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-p-attack" accept="audio/*">
+              </label>
+            </div>
+            <div class="audio-preview">
+              <button class="audio-play" data-type="death">
+                <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <label class="upload-btn">
+                <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                <input type="file" class="audio-input" data-piece="b-p-death" accept="audio/*">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="piece-config-section board-squares-section">
+    <h3>Board Squares</h3>
+    <div class="squares-preview">
+      <div>
+        <div class="square-preview" id="light-square-preview" style="background: var(--light-square)"></div>
+        <label class="upload-btn">
+          Light Square
+          <input type="file" class="file-input" data-square="light" accept="image/*">
+        </label>
+      </div>
+      <div>
+        <div class="square-preview" id="dark-square-preview" style="background: var(--dark-square)"></div>  
+        <label class="upload-btn">
+          Dark Square
+          <input type="file" class="file-input" data-square="dark" accept="image/*">
+        </label>
+      </div>
+    </div>
+
+    <div class="color-controls">
+      <h4 style="color: white;">Game Colors</h4>
+      <div class="color-slider-row">
+        <span>White Team:</span>
+        <input type="text" id="whiteTeamName" maxlength="8" value="White" style="padding: 5px; border-radius: 3px; border: 1px solid var(--accent-color);">
+      </div>
+      <div class="color-slider-row">
+        <span>Black Team:</span>
+        <input type="text" id="blackTeamName" maxlength="8" value="Black" style="padding: 5px; border-radius: 3px; border: 1px solid var(--accent-color);">
+      </div>
+      <div class="color-slider-row">
+        <span>Background:</span>
+        <input type="color" id="backgroundColor" value="#2c3e50">
+      </div>
+      <div class="color-slider-row">
+        <span>Windows/Dialogs:</span>
+        <input type="color" id="windowColor" value="#34495e">
+      </div>
+      <div class="color-slider-row">
+        <span>Buttons:</span>
+        <input type="color" id="buttonColor" value="#34495e">
+      </div>
+      <div class="color-slider-row">
+        <span>Button Hover:</span>
+        <input type="color" id="buttonHoverColor" value="#2c3e50">
+      </div>
+      <div class="color-slider-row">
+        <span>Light Squares:</span>
+        <input type="color" id="lightSquareColor" value="#e8e8e8">
+      </div>
+      <div class="color-slider-row">
+        <span>Dark Squares:</span>
+        <input type="color" id="darkSquareColor" value="#a9a9a9">
+      </div>
+      <div class="color-slider-row">
+        <span>Accent Color:</span>
+        <input type="color" id="accentColor" value="#456789">
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Game Sounds Section -->
+  <div class="piece-config-section game-sounds-section">
+    <h3>Game Sounds</h3>
+    <div class="game-sounds-grid">
+      <div class="audio-config-row">
+        <span>Check Sound</span>
+        <div class="audio-controls">
+          <div class="audio-preview">
+            <button class="audio-play" data-type="check">
+              <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <label class="upload-btn">
+              <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+              <input type="file" class="audio-input" data-sound="check" accept="audio/*">
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="audio-config-row">
+        <span>Checkmate Sound</span>
+        <div class="audio-controls">
+          <div class="audio-preview">
+            <button class="audio-play" data-type="checkmate">
+              <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <label class="upload-btn">
+              <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+              <input type="file" class="audio-input" data-sound="checkmate" accept="audio/*">
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="audio-config-row">
+        <span>Reset Sound</span>
+        <div class="audio-controls">
+          <div class="audio-preview">
+            <button class="audio-play" data-type="reset">
+              <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <label class="upload-btn">
+              <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+              <input type="file" class="audio-input" data-sound="reset" accept="audio/*">
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="audio-config-row">
+        <span>Promotion Sound</span>
+        <div class="audio-controls">
+          <div class="audio-preview">
+            <button class="audio-play" data-type="promotion">
+              <svg class="icon"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <label class="upload-btn">
+              <svg class="icon"><path d="M9 13h2v2H9v-2zm0-8h2v6H9V5zm.99-5C4.47 0 0 4.48 0 10s4.47 10 9.99 10C15.52 20 20 15.52 20 10S15.52 0 9.99 0zM10 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+              <input type="file" class="audio-input" data-sound="promotion" accept="audio/*">
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Add save/load dialog -->
+<div id="saveDialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--window-color); padding: 20px; border-radius: 5px; z-index: 2000; width: 90%; max-width: 1000px;">
+  <h3 style="color: white; margin-top: 0;">Save/Load Configuration</h3>
+  <textarea id="configCode" style="width: 100%; height: 200px; margin: 10px 0; padding: 10px;"></textarea>
+  <div style="display: flex; gap: 10px; justify-content: center;">
+    <button onclick="saveConfig()" style="padding: 8px 16px;">Save</button>
+    <button onclick="loadConfig()" style="padding: 8px 16px;">Load</button>
+    <button onclick="toggleSaveDialog(false)" style="padding: 8px 16px;">Back</button>
+  </div>
+</div>
+
+<script>
+let board = null;
+let game = new Chess();
+let timer1 = 0;
+let timer2 = 0;
+let activeTimer = null;
+let isComputerGame = false;
+let difficulty = 4; // Increased from 2 to 4 for more challenging AI
+let pendingPromotion = null;
+
+let selectedSquare = null;
+let highlightedSquares = [];
+
+// Updated customPieceThemes object structure
+let customPieceThemes = {
+  pieces: {},
+  attacks: {},
+  deaths: {},
+  attackSounds: {},
+  deathSounds: {},
+  squares: {
+    light: null,
+    dark: null
+  },
+  gameSounds: {
+    check: null,
+    checkmate: null,
+    reset: null,
+    promotion: null
+  },
+  colors: {
+    background: '#2c3e50',
+    window: '#34495e',
+    button: '#34495e',
+    buttonHover: '#2c3e50',
+    lightSquare: '#e8e8e8',
+    darkSquare: '#a9a9a9',
+    accent: '#456789'
+  },
+  teamNames: {
+    white: 'White',
+    black: 'Black'
+  }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize team name inputs with default values
+  document.getElementById('whiteTeamName').value = customPieceThemes.teamNames.white;
+  document.getElementById('blackTeamName').value = customPieceThemes.teamNames.black;
+
+  // Add event listeners for team name changes
+  document.getElementById('whiteTeamName').addEventListener('input', function() {
+    customPieceThemes.teamNames.white = this.value;
+    updateTimers();
+  });
+
+  document.getElementById('blackTeamName').addEventListener('input', function() {
+    customPieceThemes.teamNames.black = this.value; 
+    updateTimers();
+  });
+});
+
+function removeHighlights() {
+  highlightedSquares.forEach(square => {
+    $(`#board .square-${square}`).css('background', '');
+  });
+  highlightedSquares = [];
+}
+
+function highlightSquare(square) {
+  $(`#board .square-${square}`).css('background', 'var(--highlight)');
+  highlightedSquares.push(square);
+}
+
+async function onSquareClick(square) {
+  // Initialize timers to 0 and start counting up when first move is made
+  if (timer1 === 0 && timer2 === 0) {
+    timer1 = timer2 = 0; // Start from 0
+    startTimers();
+  }
+
+  removeHighlights();
+  
+  // If we already have a selected square, try to make a move
+  if (selectedSquare !== null) {
+    const piece = game.get(selectedSquare);
+    const targetSquare = game.get(square);
+    const targetRank = square.charAt(1);
+    
+    // Check for pawn promotion
+    if (piece && piece.type === 'p') {
+      if ((piece.color === 'w' && targetRank === '8') || 
+          (piece.color === 'b' && targetRank === '1')) {
+        const move = game.move({
+          from: selectedSquare,
+          to: square,
+          promotion: 'q'  // Default to queen, will be changed by promotion dialog
+        });
+        
+        if (move !== null) {
+          // Undo the move temporarily to show the promotion dialog
+          game.undo();
+          showPromotionDialog(selectedSquare, square, piece.color);
+          selectedSquare = null;
+          return;
+        }
+      }
+    }
+    
+    // Attempt to make the move
+    const move = game.move({
+      from: selectedSquare,
+      to: square,
+      promotion: 'q' // Default promotion to queen for regular moves
+    });
+
+    if (move !== null) {
+      // If there's a capture, play attack and death animations
+      if (targetSquare) {
+        // Hide original pieces during animation
+        $(`#board .square-${selectedSquare} .piece-417db`).css('visibility', 'hidden');
+        $(`#board .square-${square} .piece-417db`).css('visibility', 'hidden');
+        
+        const attackingPiece = `${piece.color}${piece.type}`;
+        const dyingPiece = `${targetSquare.color}${targetSquare.type}`;
+        
+        // Play attack sound
+        if (customPieceThemes.attackSounds[attackingPiece]) {
+          const attackSound = new Audio(customPieceThemes.attackSounds[attackingPiece]);
+          attackSound.play();
+        }
+        
+        // Create attack animation element
+        const attackAnimation = customPieceThemes.attacks[attackingPiece];
+        if (attackAnimation) {
+          const attackElement = document.createElement('img');
+          attackElement.src = attackAnimation;
+          attackElement.classList.add('piece-animation');
+          attackElement.style.width = '100%';
+          attackElement.style.height = '100%';
+          $(`#board .square-${selectedSquare}`).append(attackElement);
+        }
+
+        // Create death animation element
+        const deathAnimation = customPieceThemes.deaths[dyingPiece];
+        if (deathAnimation) {
+          const deathElement = document.createElement('img');
+          deathElement.src = deathAnimation;
+          deathElement.classList.add('piece-animation');
+          deathElement.style.width = '100%';
+          deathElement.style.height = '100%';
+          $(`#board .square-${square}`).append(deathElement);
+        }
+        
+        // Wait for animations to complete
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Play death sound
+        if (customPieceThemes.deathSounds[dyingPiece]) {
+          const deathSound = new Audio(customPieceThemes.deathSounds[dyingPiece]);
+          deathSound.play();
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Remove animation elements
+        $('.piece-animation').remove();
+      }
+
+      // Update board position after animations and show pieces again
+      board.position(game.fen());
+      $('.piece-417db').css('visibility', 'visible');
+      
+      updateStatus();
+      
+      if (isComputerGame && !game.game_over()) {
+        window.setTimeout(makeComputerMove, 250);
+      }
+    }
+    
+    selectedSquare = null;
+    return;
+  }
+  
+  // If it's computer's turn or game is over, don't allow selection
+  if ((isComputerGame && game.turn() === 'b') || game.game_over()) {
+    return;
+  }
+  
+  // Get the piece at the clicked square
+  const piece = game.get(square);
+  if (piece === null || 
+      (game.turn() === 'w' && piece.color === 'b') || 
+      (game.turn() === 'b' && piece.color === 'w')) {
+    return;
+  }
+  
+  // Show possible moves
+  selectedSquare = square;
+  const moves = game.moves({
+    square: square,
+    verbose: true
+  });
+  
+  // Highlight all possible destination squares
+  moves.forEach(move => {
+    highlightSquare(move.to);
+  });
+}
+
+function onDragStart() {
+  return false; // Disable dragging completely
+}
+
+function showPromotionDialog(source, target, color) {
+  // Play promotion sound
+  if (customPieceThemes.gameSounds.promotion) {
+    new Audio(customPieceThemes.gameSounds.promotion).play();
+  }
+
+  const dialog = document.getElementById('promotionDialog');
+  const pieces = dialog.getElementsByClassName('promotion-piece');
+  
+  Array.from(pieces).forEach(piece => {
+    const pieceType = piece.dataset.piece;
+    piece.src = `https://chessboardjs.com/img/chesspieces/wikipedia/${color}${pieceType.toUpperCase()}.png`;
+  });
+  
+  pendingPromotion = { source, target };
+  dialog.style.display = 'flex';
+  
+  const handlePromotion = function(e) {
+    const selectedPiece = e.target.dataset.piece;
+    if (selectedPiece) {
+      const move = game.move({
+        from: pendingPromotion.source,
+        to: pendingPromotion.target,
+        promotion: selectedPiece
+      });
+      
+      board.position(game.fen());
+      dialog.style.display = 'none';
+      pendingPromotion = null;
+      updateStatus();
+      
+      if (isComputerGame && !game.game_over()) {
+        window.setTimeout(makeComputerMove, 250);
+      }
+    }
+  };
+
+  Array.from(pieces).forEach(piece => {
+    piece.onclick = handlePromotion;
+  });
+}
+
+function makeRandomMove() {
+  const moves = game.moves();
+  const move = moves[Math.floor(Math.random() * moves.length)];
+  game.move(move);
+  board.position(game.fen());
+  updateStatus();
+}
+
+function evaluatePosition() {
+  let value = 0;
+  const pieces = {'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9};
+  const pos = game.board();
+  
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      const piece = pos[i][j];
+      if (piece) {
+        const pieceValue = pieces[piece.type] || 0;
+        value += piece.color === 'w' ? pieceValue : -pieceValue;
+      }
+    }
+  }
+  return value;
+}
+
+function minimax(depth, alpha, beta, maximizingPlayer) {
+  if (depth === 0) return evaluatePosition();
+  
+  const moves = game.moves();
+  if (maximizingPlayer) {
+    let maxEval = -Infinity;
+    for (const move of moves) {
+      game.move(move);
+      const eval = minimax(depth - 1, alpha, beta, false);
+      game.undo();
+      maxEval = Math.max(maxEval, eval);
+      alpha = Math.max(alpha, eval);
+      if (beta <= alpha) break;
+    }
+    return maxEval;
+  } else {
+    let minEval = Infinity;
+    for (const move of moves) {
+      game.move(move);
+      const eval = minimax(depth - 1, alpha, beta, true);
+      game.undo();
+      minEval = Math.min(minEval, eval);
+      beta = Math.min(beta, eval);
+      if (beta <= alpha) break;
+    }
+    return minEval;
+  }
+}
+
+function makeComputerMove() {
+  const depth = 4; // Fixed high difficulty
+  let bestMove = null;
+  let bestValue = -Infinity;
+  const moves = game.moves();
+  
+  // Add positional evaluation
+  const evaluatePosition = () => {
+    let value = 0;
+    const pieces = {'p': 10, 'n': 32, 'b': 33, 'r': 50, 'q': 90, 'k': 900};
+    const pos = game.board();
+    
+    // Piece-square tables for positional evaluation
+    const pawnTable = [
+      [ 0,  0,  0,  0,  0,  0,  0,  0],
+      [50, 50, 50, 50, 50, 50, 50, 50],
+      [10, 10, 20, 30, 30, 20, 10, 10],
+      [ 5,  5, 10, 25, 25, 10,  5,  5],
+      [ 0,  0,  0, 20, 20,  0,  0,  0],
+      [ 5, -5,-10,  0,  0,-10, -5,  5],
+      [ 5, 10, 10,-20,-20, 10, 10,  5],
+      [ 0,  0,  0,  0,  0,  0,  0,  0]
+    ];
+
+    // Evaluate material and position
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        const piece = pos[i][j];
+        if (piece) {
+          // Material value
+          const pieceValue = pieces[piece.type] || 0;
+          
+          // Positional value
+          let positionalValue = 0;
+          if (piece.type === 'p') {
+            positionalValue = pawnTable[piece.color === 'w' ? i : 7-i][j];
+          }
+          
+          // Combine material and positional values
+          value += piece.color === 'w' ? 
+            (pieceValue + positionalValue) : 
+            -(pieceValue + positionalValue);
+        }
+      }
+    }
+    
+    // Add bonus for mobility
+    const mobilityValue = game.moves().length * (game.turn() === 'w' ? 1 : -1);
+    value += mobilityValue * 0.1;
+    
+    // Add bonus for king safety
+    if (game.in_check()) {
+      value += game.turn() === 'w' ? -50 : 50;
+    }
+    
+    return value;
+  };
+
+  for (const move of moves) {
+    game.move(move);
+    const value = evaluatePosition();
+    game.undo();
+    
+    if (value > bestValue) {
+      bestValue = value;
+      bestMove = move;
+    }
+  }
+  
+  if (bestMove) {
+    game.move(bestMove);
+    board.position(game.fen());
+    updateStatus();
+  }
+}
+
+function updateStatus() {
+  const statusElement = document.getElementById('game-status');
+  
+  if (game.in_checkmate()) {
+    statusElement.innerHTML = `JAQUE MATE!<br>Gana ${game.turn() === 'w' ? 'Black' : 'White'}!`;
+    stopTimers();
+    // Play checkmate sound
+    if (customPieceThemes.gameSounds.checkmate) {
+      new Audio(customPieceThemes.gameSounds.checkmate).play();
+    }
+  } else if (game.in_draw()) {
+    alert('Game drawn!');
+    stopTimers();
+    statusElement.textContent = '';
+  } else if (game.in_check()) {
+    statusElement.textContent = 'Jaque';
+    // Play check sound
+    if (customPieceThemes.gameSounds.check) {
+      new Audio(customPieceThemes.gameSounds.check).play();
+    }
+    setTimeout(() => {
+      statusElement.textContent = '';
+    }, 2000);
+  } else {
+    statusElement.textContent = '';
+  }
+}
+
+function updateTimers() {
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  document.getElementById('player1-timer').textContent = 
+    `${customPieceThemes.teamNames.white}: ${formatTime(timer1)}`;
+  document.getElementById('player2-timer').textContent = 
+    `${customPieceThemes.teamNames.black}: ${formatTime(timer2)}`;
+}
+
+function startTimers() {
+  if (activeTimer) clearInterval(activeTimer);
+  activeTimer = setInterval(() => {
+    if (game.turn() === 'w') {
+      timer1++;  // Count up instead of down
+    } else {
+      timer2++;  // Count up instead of down
+    }
+    updateTimers();
+  }, 1000);
+}
+
+function stopTimers() {
+  if (activeTimer) {
+    clearInterval(activeTimer);
+    activeTimer = null;
+  }
+}
+
+function resetGame() {
+  game.reset();
+  board.position('start');
+  timer1 = timer2 = 0;
+  updateTimers();
+  stopTimers();
+  document.getElementById('game-status').textContent = '';
+  
+  // Play reset sound
+  if (customPieceThemes.gameSounds.reset) {
+    new Audio(customPieceThemes.gameSounds.reset).play();
+  }
+}
+
+// Event Listeners
+document.getElementById('mode-toggle').addEventListener('click', function() {
+  isComputerGame = !isComputerGame;
+  this.textContent = `Mode: ${isComputerGame ? 'Human vs Computer' : 'Human vs Human'}`;
+  document.getElementById('difficulty-controls').classList.toggle('show', isComputerGame);
+  resetGame();
+});
+
+document.getElementById('difficulty-controls').addEventListener('click', function(e) {
+  if (e.target.matches('button')) {
+    difficulty = 4; // Always use highest difficulty
+    e.target.style.background = '#2c3e50';
+  }
+});
+
+document.getElementById('reset').addEventListener('click', resetGame);
+
+document.getElementById('fullscreen').addEventListener('click', function() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  const config = {
+    position: 'start',
+    draggable: false, // Disable dragging
+    pieceTheme: (piece) => {
+      return customPieceThemes.pieces[piece] || 
+        `https://chessboardjs.com/img/chesspieces/wikipedia/${piece}.png`;
+    }
+  };
+
+  board = Chessboard('board', config);
+  
+  // Add click handlers to squares
+  $('#board').on('click', '.square-55d63', function(e) {
+    const square = $(this).data('square');
+    onSquareClick(square);
+  });
+  
+  // Remove startTimers() call here
+  updateTimers(); // Just update display initially
+
+  // Color control functionality
+  function initColorControls() {
+    const colorInputs = {
+      backgroundColor: document.getElementById('backgroundColor'),
+      windowColor: document.getElementById('windowColor'),
+      buttonColor: document.getElementById('buttonColor'),
+      buttonHoverColor: document.getElementById('buttonHoverColor'),
+      lightSquareColor: document.getElementById('lightSquareColor'),
+      darkSquareColor: document.getElementById('darkSquareColor'),
+      accentColor: document.getElementById('accentColor') // Add accent color input
+    };
+
+    // Set initial values from current CSS
+    const computedStyle = getComputedStyle(document.documentElement);
+    colorInputs.backgroundColor.value = computedStyle.getPropertyValue('--background-color') || '#2c3e50';
+    colorInputs.windowColor.value = computedStyle.getPropertyValue('--window-color') || '#34495e';
+    colorInputs.buttonColor.value = computedStyle.getPropertyValue('--button-color') || '#34495e';
+    colorInputs.buttonHoverColor.value = computedStyle.getPropertyValue('--button-hover-color') || '#2c3e50';
+    colorInputs.lightSquareColor.value = computedStyle.getPropertyValue('--light-square') || '#e8e8e8';
+    colorInputs.darkSquareColor.value = computedStyle.getPropertyValue('--dark-square') || '#a9a9a9';
+    colorInputs.accentColor.value = computedStyle.getPropertyValue('--accent-color') || '#456789';
+    
+    // Add event listeners for color changes
+    Object.entries(colorInputs).forEach(([key, input]) => {
+      input.addEventListener('input', updateColors);
+      input.addEventListener('change', updateColors);
+    });
+  }
+
+  function updateColors() {
+    const root = document.documentElement;
+    const backgroundColor = document.getElementById('backgroundColor').value;
+    const windowColor = document.getElementById('windowColor').value;
+    const buttonColor = document.getElementById('buttonColor').value;
+    const buttonHoverColor = document.getElementById('buttonHoverColor').value;
+    const lightSquareColor = document.getElementById('lightSquareColor').value;
+    const darkSquareColor = document.getElementById('darkSquareColor').value;
+    const accentColor = document.getElementById('accentColor').value;
+
+    // Update CSS variables
+    root.style.setProperty('--background-color', backgroundColor);
+    root.style.setProperty('--window-color', windowColor);
+    root.style.setProperty('--button-color', buttonColor);
+    root.style.setProperty('--button-hover-color', buttonHoverColor);
+    root.style.setProperty('--light-square', lightSquareColor);
+    root.style.setProperty('--dark-square', darkSquareColor);
+    root.style.setProperty('--accent-color', accentColor);
+
+    // Store colors in customPieceThemes
+    customPieceThemes.colors = {
+      background: backgroundColor,
+      window: windowColor,
+      button: buttonColor,
+      buttonHover: buttonHoverColor,
+      lightSquare: lightSquareColor,
+      darkSquare: darkSquareColor,
+      accent: accentColor
+    };
+
+    // Update document styles
+    document.body.style.background = backgroundColor;
+    
+    // Update elements with accent color
+    const accentElements = [
+      '.preview-box',
+      '.upload-btn',
+      '#board',
+      '.piece-config-section',
+      '.color-controls',
+      '.board-squares-section',
+      '.game-sounds-section'
+    ];
+    
+    accentElements.forEach(selector => {
+      document.querySelectorAll(selector).forEach(el => {
+        if (selector === '.preview-box') {
+          el.style.borderColor = accentColor;
+        } else if (selector === '.upload-btn') {
+          el.style.background = accentColor;
+        } else if (selector === '#board') {
+          el.style.borderColor = accentColor;
+        } else {
+          el.style.borderColor = accentColor;
+        }
+      });
+    });
+
+    // Force board refresh to update square colors
+    board.position(game.fen());
+  }
+
+  initColorControls();
+  
+  // If there are saved colors in customPieceThemes, apply them
+  if (customPieceThemes.colors) {
+    document.getElementById('backgroundColor').value = customPieceThemes.colors.background;
+    document.getElementById('windowColor').value = customPieceThemes.colors.window;
+    document.getElementById('buttonColor').value = customPieceThemes.colors.button;
+    document.getElementById('buttonHoverColor').value = customPieceThemes.colors.buttonHover;
+    document.getElementById('lightSquareColor').value = customPieceThemes.colors.lightSquare;
+    document.getElementById('darkSquareColor').value = customPieceThemes.colors.darkSquare;
+    document.getElementById('accentColor').value = customPieceThemes.colors.accent;
+    updateColors();
+  }
+});
+
+// New configuration functionality
+function handleAudioSelect(event) {
+  const file = event.target.files[0];
+  const reader = new FileReader();
+  const pieceCode = event.target.dataset.piece;
+  const soundType = event.target.dataset.sound;
+  
+  reader.onload = function(e) {
+    if (soundType) {
+      // Handle game sounds
+      customPieceThemes.gameSounds[soundType] = e.target.result;
+    } else {
+      // Handle piece sounds
+      const [color, piece, type] = pieceCode.split('-');
+      if (type === 'attack') {
+        customPieceThemes.attackSounds[`${color}${piece}`] = e.target.result;
+      } else if (type === 'death') {
+        customPieceThemes.deathSounds[`${color}${piece}`] = e.target.result;
+      }
+    }
+  };
+  
+  if (file) {
+    reader.readAsDataURL(file);
+  }
+}
+
+function handleImageSelect(event) {
+  const file = event.target.files[0];
+  const reader = new FileReader();
+  const pieceCode = event.target.dataset.piece;
+  const squareType = event.target.dataset.square;
+
+  reader.onload = function(e) {
+    if (squareType) {
+      // Handle square background images
+      const previewElement = document.getElementById(`${squareType}-square-preview`);
+      const backgroundUrl = `url(${e.target.result})`;
+      previewElement.style.backgroundImage = backgroundUrl;
+      customPieceThemes.squares[squareType] = e.target.result;
+      updateSquareStyles(squareType, e.target.result);
+    } else {
+      // Handle piece images
+      const [color, piece, type] = pieceCode.split('-');
+      const previewId = `preview-${pieceCode}`;
+      if (document.getElementById(previewId)) {
+        document.getElementById(previewId).src = e.target.result;
+      }
+
+      if (type === 'attack') {
+        customPieceThemes.attacks[`${color}${piece}`] = e.target.result;
+      } else if (type === 'death') {
+        customPieceThemes.deaths[`${color}${piece}`] = e.target.result;
+      } else {
+        customPieceThemes.pieces[`${color}${piece.toUpperCase()}`] = e.target.result;
+        board.position(game.fen()); // Refresh board to show new piece
+      }
+    }
+  };
+
+  if (file) {
+    reader.readAsDataURL(file);
+  }
+}
+
+function updateSquareStyles(type, imageUrl) {
+  const root = document.documentElement;
+  if (type === 'light') {
+    root.style.setProperty('--light-square-img', `url(${imageUrl})`);
+  } else {
+    root.style.setProperty('--dark-square-img', `url(${imageUrl})`);
+  }
+}
+
+// Add event listeners for file inputs
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle piece and square image uploads
+  const fileInputs = document.querySelectorAll('.file-input');
+  fileInputs.forEach(input => {
+    input.addEventListener('change', handleImageSelect);
+  });
+
+  // Handle audio uploads
+  const audioInputs = document.querySelectorAll('.audio-input');
+  audioInputs.forEach(input => {
+    input.addEventListener('change', handleAudioSelect);
+  });
+
+  // Handle audio play buttons
+  const audioPlayButtons = document.querySelectorAll('.audio-play');
+  audioPlayButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const pieceCode = this.closest('.piece-config-row')?.querySelector('.audio-input')?.dataset.piece;
+      const soundType = this.dataset.type;
+      const gameSound = this.closest('.audio-config-row')?.querySelector('.audio-input')?.dataset.sound;
+      
+      let audioSrc = null;
+      if (gameSound) {
+        audioSrc = customPieceThemes.gameSounds[gameSound];
+      } else if (pieceCode) {
+        if (soundType === 'attack') {
+          const [color, piece] = pieceCode.split('-');
+          audioSrc = customPieceThemes.attackSounds[`${color}${piece}`];
+        } else if (soundType === 'death') {
+          const [color, piece] = pieceCode.split('-');
+          audioSrc = customPieceThemes.deathSounds[`${color}${piece}`];
+        }
+      }
+
+      if (audioSrc) {
+        const audio = new Audio(audioSrc);
+        audio.play();
+      }
+    });
+  });
+});
+
+// Add these missing toggle functions
+function toggleConfig(show) {
+  document.getElementById('configDialog').style.display = show ? 'block' : 'none';
+  
+  // When closing the config dialog, update the board and all visuals
+  if (!show) {
+    // Refresh the board to update piece images
+    if (board) {
+      board.position(game.fen());
+    }
+    
+    // Update CSS variables for colors
+    const root = document.documentElement;
+    root.style.setProperty('--background-color', customPieceThemes.colors.background);
+    root.style.setProperty('--window-color', customPieceThemes.colors.window);
+    root.style.setProperty('--button-color', customPieceThemes.colors.button);
+    root.style.setProperty('--button-hover-color', customPieceThemes.colors.buttonHover);
+    root.style.setProperty('--light-square', customPieceThemes.colors.lightSquare);
+    root.style.setProperty('--dark-square', customPieceThemes.colors.darkSquare);
+    root.style.setProperty('--accent-color', customPieceThemes.colors.accent);
+
+    // Update square background images if they exist
+    if (customPieceThemes.squares.light) {
+      root.style.setProperty('--light-square-img', `url(${customPieceThemes.squares.light})`);
+    }
+    if (customPieceThemes.squares.dark) {
+      root.style.setProperty('--dark-square-img', `url(${customPieceThemes.squares.dark})`);
+    }
+
+    // Update timers with team names
+    updateTimers();
+    
+    // Force a small delay before board refresh to ensure all styles are applied
+    setTimeout(() => {
+      if (board) {
+        board.position(game.fen());
+      }
+    }, 100);
+  }
+}
+
+function toggleSaveDialog(show) {
+  document.getElementById('saveDialog').style.display = show ? 'block' : 'none';
+}
+
+function saveConfig() {
+  const configCode = JSON.stringify(customPieceThemes);
+  document.getElementById('configCode').value = configCode;
+}
+
+function loadConfig() {
+  try {
+    const configCode = document.getElementById('configCode').value;
+    const loadedConfig = JSON.parse(configCode);
+    
+    // Merge loaded config with existing theme structure
+    customPieceThemes = {
+      ...customPieceThemes, // Keep existing structure
+      ...loadedConfig      // Override with loaded values
+    };
+
+    // Update color inputs with loaded values
+    if (loadedConfig.colors) {
+      const colorInputs = {
+        backgroundColor: document.getElementById('backgroundColor'),
+        windowColor: document.getElementById('windowColor'),
+        buttonColor: document.getElementById('buttonColor'),
+        buttonHoverColor: document.getElementById('buttonHoverColor'),
+        lightSquareColor: document.getElementById('lightSquareColor'),
+        darkSquareColor: document.getElementById('darkSquareColor'),
+        accentColor: document.getElementById('accentColor') // Add accent color input
+      };
+
+      colorInputs.backgroundColor.value = loadedConfig.colors.background;
+      colorInputs.windowColor.value = loadedConfig.colors.window;
+      colorInputs.buttonColor.value = loadedConfig.colors.button;
+      colorInputs.buttonHoverColor.value = loadedConfig.colors.buttonHover;
+      colorInputs.lightSquareColor.value = loadedConfig.colors.lightSquare;
+      colorInputs.darkSquareColor.value = loadedConfig.colors.darkSquare;
+      colorInputs.accentColor.value = loadedConfig.colors.accent;
+
+      // Update document styles
+      document.body.style.background = loadedConfig.colors.background;
+    }
+
+    // Update image previews for pieces
+    for (const [pieceCode, imgSrc] of Object.entries(loadedConfig.pieces || {})) {
+      const [color, piece] = pieceCode.toLowerCase().split('');
+      const previewId = `preview-${color}-${piece.toLowerCase()}`;
+      const previewElement = document.getElementById(previewId);
+      if (previewElement) {
+        previewElement.src = imgSrc;
+      }
+    }
+
+    // Update attack image previews
+    for (const [pieceCode, imgSrc] of Object.entries(loadedConfig.attacks || {})) {
+      const [color, piece] = pieceCode.split('');
+      const previewId = `preview-${color}-${piece}-attack`;
+      const previewElement = document.getElementById(previewId);
+      if (previewElement) {
+        previewElement.src = imgSrc;
+      }
+    }
+
+    // Update death image previews
+    for (const [pieceCode, imgSrc] of Object.entries(loadedConfig.deaths || {})) {
+      const [color, piece] = pieceCode.split('');
+      const previewId = `preview-${color}-${piece}-death`;
+      const previewElement = document.getElementById(previewId);
+      if (previewElement) {
+        previewElement.src = imgSrc;
+      }
+    }
+
+    // Update square background previews
+    if (loadedConfig.squares) {
+      if (loadedConfig.squares.light) {
+        const lightPreview = document.getElementById('light-square-preview');
+        lightPreview.style.backgroundImage = `url(${loadedConfig.squares.light})`;
+      }
+      if (loadedConfig.squares.dark) {
+        const darkPreview = document.getElementById('dark-square-preview');
+        darkPreview.style.backgroundImage = `url(${loadedConfig.squares.dark})`;
+      }
+    }
+
+    // Update team names if they exist in the loaded config
+    if (loadedConfig.teamNames) {
+      document.getElementById('whiteTeamName').value = loadedConfig.teamNames.white;
+      document.getElementById('blackTeamName').value = loadedConfig.teamNames.black;
+      updateTimers(); // Update timers with new team names
+    }
+
+    // Update board to show loaded pieces
+    if (board) {
+      board.position(game.fen());
+    }
+
+    // Close the save dialog
+    toggleSaveDialog(false);
+
+    // Show success message
+    alert('Configuration loaded successfully, copy and save the text!');
+    
+  } catch (e) {
+    console.error('Error loading configuration:', e);
+    alert('Error loading configuration: ' + e.message);
+  }
+}
+</script>
+</body></html>

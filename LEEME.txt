@@ -1,0 +1,43 @@
+Chess Maker es un juego de ajedrez, personalizable, en el cual las piezas
+ pueden ser animadas, artisticamente creadas y añadidas, se pueden poner
+ audios para los movimientos de las piezas y toda la configuracion se puede guardar.
+
+Hago este codigo libre de uso, (no comerciable), pero si me gustaria
+ q alguien lo continue y llegue hacer una web de juego de ajedrez,
+y que el arte (las piezas) puedan ser comerciables. y si se pueda hacer
+ un comercio de eso, tambien se puedan hacer torneos de ajedrez
+ y competencias de arte de piezas. ahora paso a decir como funciona:
+
+Las animaciones son: 
+     Las imagenes pueden ser en formato recomendado (.gif).
+
+1) tipo comun la cual se vera siempre en el juego.
+       no tiene sonido.
+2) tipo de ataque, 2seg, y es para cuando la pieza ataque.
+      se puede poner un sonido 2seg.
+3) tipo de muerte, 2seg, y es para cuando el el personaje muere.
+      se puede poner un sonido 2seg.
+
+Se puede personalizar los cuadrados del tablero. y los sonidos del juego
+ como, el sonido de jaque, sonido de reinicio de juego, sonido de coronacion,
+ y sonido de jaque mate. y por ultimo para completar un estilo especifico,
+ se le pueden cambiar toda la gama de color al entorno del juego. toda la
+ configuracion se puede guardar, copiando y guardando en un block de notas
+ el texto generado, para posteriormente poder cargarlo.
+
+por aca les dejo el codigo html, en texto, lo que tienen que hacer es poner
+ el codigo en un block de notas y cambiar la extencion .txt por .html y hacer
+ doble clip para abrir en un navegador de su preferencia!! y listo a editarlo
+ a su gusto.
+
+No les doy el codigo de imagenes de guardado porq no soy dueño de ese arte,
+ y es que solo lo use y edite para pruebas.
+
+A todos los amantes del ajedrez armen sus tableros y su arte,
+ la unica condicion que les pongo para su libre uso es que me den
+ el privilegio de ver y apreciar su arte para Chess Maker!
+
+video explicativo en mi canal. y si me quieren donar un cafe gracias!
+
+https://www.youtube.com/@pantrox_arts
+https://ko-fi.com/pantrox_arts
