@@ -22,3 +22,5 @@ To all chess lovers, build your boards and your art, the only condition I put on
 (explicacion) https://youtu.be/ys0TdnneakI
 https://www.youtube.com/@pantrox_arts
 https://ko-fi.com/pantrox_arts
+
+[safe CHM.md](https://github.com/user-attachments/files/18270467/safe.CHM.md)
